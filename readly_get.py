@@ -59,33 +59,33 @@ def check_version():
 if __name__ == "__main__":
     # Parse des arguments passés en ligne de commande.
     parser = argparse.ArgumentParser(
-        description="""Script pour sauvegarder une publication Readly."""
+        description="""Script to save a Readly publication."""
     )
     parser.add_argument(
         "url",
         type=str,
         default="",
         nargs="?",
-        help="L'URL de la publication à récupérer",
+        help="URL of the desired publication.",
     )
     parser.add_argument(
         "--token",
         type=str,
         default="auth_token",
-        help="Token d'authentification ou fichier contenant le token",
+        help="Authentication token or file containing the token. Default=\"auth_token\".",
     )
     parser.add_argument(
         "--output-folder",
         "-o",
         type=str,
         default="DOWNLOADS",
-        help="Répertoire racine de téléchargement",
+        help="Folder to save your publication. Default=\"DOWNLOADS\".",
     )
     parser.add_argument(
         "--pattern",
         type=str,
         default="title - issue (date)",
-        help="Pattern de nommage du fichier (title, issue, date)",
+        help="Pattern to name your file (available: \"title\", \"issue\", \"date\"). Default=\"title - issue (date)\".",
     )
     parser.add_argument(
         "--image-format",
@@ -93,14 +93,14 @@ if __name__ == "__main__":
         type=str,
         choices=["jpeg", "webp"],
         default="jpeg",
-        help="Format des images à sauvegarder",
+        help="Image format saved (available: \"jpeg\", \"webp\"). Default=\"jpeg\".",
     )
     parser.add_argument(
         "--quality",
         "-q",
         type=int,
         default=70,
-        help="Qualité de sauvegarde des images (100 = meilleure qualité)",
+        help="Image quality (100 = best quality). Default=\"70\".",
     )
     parser.add_argument(
         "--container-format",
@@ -108,10 +108,10 @@ if __name__ == "__main__":
         type=str,
         choices=["pdf", "cbz"],
         default="pdf",
-        help="Format du container de sortie",
+        help="Output file type (available: \"cbz\", \"pdf\"). Default=\"pdf\".",
     )
     parser.add_argument(
-        "--user-agent", type=str, default=None, help="User agent à utiliser"
+        "--user-agent", type=str, default=None, help="User-agent to use."
     )
     parser.add_argument(
         "--pause",
@@ -119,25 +119,37 @@ if __name__ == "__main__":
         type=float,
         metavar="SECONDS",
         default=0,
-        help="Faire une pause (en secondes) entre chaque page",
+        help="Make a pause (in seconds) between two pages. Default=\"0\"",
     )
     parser.add_argument(
         "--no-clean",
         action="store_true",
         default=False,
-        help="Ne supprime pas le répertoire temporaire dans le cas où un PDF a été généré",
+        help="Don't delete the temp folder where the images are stored.",
+    )
+    parser.add_argument(
+        "--get-articles",
+        action="store_true",
+        default=False,
+        help="Also download attached articles. Use with \"--no-clean\" option, or files will be deleted.",
+    )
+    parser.add_argument(
+        "--get-articles-only",
+        action="store_true",
+        default=False,
+        help="Download only attached articles (no image). Won't create PDF / CBZ file. Will force \"--no-clean\" option.",
     )
     parser.add_argument(
         "--create-token",
         action="store_true",
         default=False,
-        help="Demande un nouveau token",
+        help="Create a new token.",
     )
     parser.add_argument(
         "--version",
         action="store_true",
         default=False,
-        help="Affiche la version",
+        help="Current version.",
     )
 
     
@@ -153,13 +165,15 @@ if __name__ == "__main__":
     no_clean = args.no_clean
     version = args.version
     create_token = args.create_token
+    get_articles = args.get_articles
+    get_articles_only = args.get_articles_only
 
     if create_token:
         new_token = readly.Readly.create_token()
         if new_token:
             print(f"{new_token}")
         else:
-            print("[ERROR] Impossible de créer un nouveau token...")
+            print("[ERROR] Impossible to create a new token...")
         sys.exit()
         
     check_version()
@@ -174,7 +188,7 @@ if __name__ == "__main__":
     rdly = readly.Readly(auth_token)
     is_token_ok = rdly.is_token_ok()
     while not is_token_ok:
-        auth_token = input("Token d'authentification : ")
+        auth_token = input("Authentication token: ")
         if auth_token.upper() == "Q":
             sys.exit()
         if os.path.exists(auth_token):
@@ -182,17 +196,27 @@ if __name__ == "__main__":
         rdly = readly.Readly(auth_token)
         is_token_ok = rdly.is_token_ok()
         if not is_token_ok:
-            print(f"[ERROR] Token invalide (\"{auth_token}\")...")
+            print(f"[ERROR] Invalid token (\"{auth_token}\")...")
         else:
             answer = "?"
             while answer.upper() not in ("Y", "N", "O", "Q", ""):
-                answer = input("Sauvagerder le token ? [O]ui (défault) / [N]on : ")
+                answer = input("Save token? [Y]es (default) / [N]o: ")
             if answer.upper() == "Q":
                 sys.exit()
             if answer.upper() in ("Y", "O", ""):
-                with open("auth_token.txt", "w") as f:
-                    f.write(auth_token)
-                print("[INFO] Token enregistré dans \"auth_token\".")
+                auth_token_file = "auth_token"
+                if os.path.exists(auth_token_file):
+                    answer = "?"
+                    while answer.upper() not in ("Y", "N", "O", "Q", ""):
+                        answer = input("File already exists. Overwrite? [Y]es / [N]o (default): ")
+                    if answer.upper() == "Q":
+                        sys.exit()
+                else:
+                    answer = "Y"
+                if answer.upper() in ("Y", "O"):
+                    with open(auth_token_file, "w") as f:
+                        f.write(auth_token)
+                    print(f"[INFO] Token saved in \"{auth_token_file}\".")
         
 
     # Lecture de l'URL.
@@ -200,7 +224,7 @@ if __name__ == "__main__":
         "https://go.readly.com/(.+)/(.+?)/(.+)", url
     ):
         url = input(
-            'URL de la publication au format "https://go.readly.com/{folders}/{magazine_id}/{publication_id}" ("Q" pour quitter) : '
+            'URL of publication looking like "https://go.readly.com/{folders}/{magazine_id}/{publication_id}" ("Q" to quit): '
         )
     if url.upper() == "Q":
         sys.exit()
@@ -215,24 +239,34 @@ if __name__ == "__main__":
     rdly.container_format = container_format
     rdly.pause_sec = pause_sec
     rdly.no_clean = no_clean
+    rdly.get_articles = get_articles
+
+
 
     infos = rdly.get_infos(publication_id)
     if not infos:
         # On n'a pas d'infos, c'est peut-être un ID de magazine.
-        print("[WARNING] Publication_id invalide...")
-        print("[INFO] Publications disponibles : ")
+        print(f"[WARNING] Invalid publication_id \"{publication_id}\"...")
+        print(f"[INFO] Available publications for magazine_id \"{publication_id}\": ")
         publications = rdly.get_all_publications(publication_id)
         for p in publications:
             print(f"{p['id']}\t{p['title']} - {p['issue']} ({p['date']})")
         publication_id = publications[0]['id']
-        print(f"[INFO] On utilise \"{publication_id} : {publications[0]['title']} - {publications[0]['issue']} ({publications[0]['date']})\"")
+        print(f"[INFO] \"{publication_id} : {publications[0]['title']} - {publications[0]['issue']} ({publications[0]['date']})\" will be downloaded.")
         infos = rdly.get_infos(publication_id)
     output_filename = output_pattern
     for k in infos:
         output_filename = output_filename.replace(f"{k}", str(infos[k]))
 
     output_filename = clean_name(output_filename)
-    print(f"[INFO] Format d'image : {image_format.upper()}")
-    print(f"[INFO] Qualité d'image : {quality}")
-    print(f"[INFO] Format du container : {container_format.upper()}")
+
+    if get_articles_only:
+        rdly.no_clean = True
+        rdly.get_articles = True
+        rdly.get_content = False
+        print(f"[INFO] Articles only.")
+    else:
+        print(f"[INFO] Image format: {image_format.upper()}")
+        print(f"[INFO] Image quality : {quality}")
+        print(f"[INFO] Container format : {container_format.upper()}")
     rdly.download_publication(publication_id, save_as=output_filename)

@@ -91,7 +91,7 @@ class Readly:
         if self.get_content:
             content = full_content["content"]
             for i, c_url in enumerate(content):
-                print(f"Téléchargement de la page {i+1} / {len(content)}", end="\r")
+                print(f"Downloading page {i+1} / {len(content)}", end="\r")
                 r = requests_retry_session(session=self.session).get(c_url)
                 page = f"000{i}"[-3:]
                 current_file = f"{tmp_output_folder}/page_{page}.{self.img_format}"
@@ -102,19 +102,23 @@ class Readly:
             print()
 
         if self.get_articles:
-            articles = full_content["articles"]
-            for i, a in enumerate(articles):
-                print(f"Page {i+1} / {len(articles)}", end="\r")
-                r = requests_retry_session(session=self.session).get(a["url"])
-                with open(f"{tmp_output_folder}/article_{a['key']}.zip", "wb") as f:
-                    f.write(self.decode(r.content, publication_id))
-            print()
+            if "articles" in full_content:
+                articles = full_content["articles"]
+                for i, a in enumerate(articles):
+                    print(f"Page {i+1} / {len(articles)}", end="\r")
+                    r = requests_retry_session(session=self.session).get(a["url"])
+                    with open(f"{tmp_output_folder}/article_{a['key']}.zip", "wb") as f:
+                        f.write(self.decode(r.content, publication_id))
+                    time.sleep(self.pause_sec)
+                print()
+            else:
+                print("[INFO] No articles found.")
 
-        if self.container_format.upper() == "PDF".upper():
-            print("Création du PDF...")
+        if self.get_content and self.container_format.upper() == "PDF".upper():
+            print("PDF creation...")
             if self.img_format.upper() == "WEBP".upper():
                 print(
-                    "[WARNING] Le format \"WEBP\" n'est pas optimisé pour les PDF. Le fichier risque d'être d'une taille très importante."
+                    "[WARNING] Image format \"WEBP\" is not optimized for PDF container. The output file may be large."
                 )
             pdf_file = self.get_unique_path(self.output_folder, save_as, "pdf")
             with open(pdf_file, "wb") as f:
@@ -127,15 +131,15 @@ class Readly:
                         continue
                     imgs.append(path)
                 f.write(img2pdf.convert(imgs))
-            print(f'"{pdf_file}" créé avec succès !')
+            print(f'"{pdf_file}" successfully created!')
 
-        if self.container_format.upper() == "CBZ".upper():
-            print("Création du CBZ...")
+        if self.get_content and self.container_format.upper() == "CBZ".upper():
+            print("CBZ creation...")
             zip_file = self.get_unique_path(self.output_folder, save_as, "zip")
             shutil.make_archive(zip_file[:-4], "zip", tmp_output_folder)
             cbz_file = self.get_unique_path(self.output_folder, save_as, "cbz")
             os.rename(zip_file, cbz_file)
-            print(f'"{cbz_file}" créé avec succès !')
+            print(f'"{cbz_file}" successfully created!')
 
         if not self.no_clean:
             shutil.rmtree(tmp_output_folder)
@@ -219,7 +223,7 @@ class Readly:
             "password": "readlymag",
             "country": country,
             "platform": "Android",
-            "id": f"00000000-7f40-6238-0000-00{unique_id}",
+            "id": f"00000000-4242-4242-0000-00{unique_id}",
             "platformInfo": "SDK=22;BRAND=samsung;MODEL=SM-J320H;RESOLUTION=720x1280;HEAP=256;TEXTURESIZE=4096;SCREENDIAGONALSIZE=4.83;SCREENCATEGORY=SMALL;HIRESREADER=true;INSTALLERPACKAGE=com.android.vending",
             "build": "4.8.5",
             "apiVer": "7",
