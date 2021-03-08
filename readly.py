@@ -2,6 +2,7 @@
 
 import requests
 from requests.adapters import HTTPAdapter
+from requests.sessions import session
 from urllib3.util import Retry
 import json
 import struct
@@ -165,7 +166,6 @@ class Readly:
         infos["date"] = infos["publish_date"][: len("YYYY-MM-DD")]
         return infos
 
-
     def get_all_publications(self, magazine_id):
         url = f"https://d3og6tlt23zks5.cloudfront.net/magazines/{magazine_id}"
         headers = {
@@ -179,9 +179,15 @@ class Readly:
             headers=headers,
         )
         infos = json.loads(r.text)
-        return [{'id': c['id'], 'title': c['title'], 'issue': c['issue'], 'date': c['publish_date'][: len("YYYY-MM-DD")]} for c in infos['content']]
-        
-
+        return [
+            {
+                "id": c["id"],
+                "title": c["title"],
+                "issue": c["issue"],
+                "date": c["publish_date"][: len("YYYY-MM-DD")],
+            }
+            for c in infos["content"]
+        ]
 
     def is_token_ok(self):
         url = f"https://api.readly.com/subscriptions"
@@ -196,7 +202,37 @@ class Readly:
             headers=headers,
         )
         infos = json.loads(r.text)
-        return (
-            "subscriptions" in infos
-            and infos["subscriptions"][0]["isActive"]
+        return "subscriptions" in infos and infos["subscriptions"][0]["isActive"]
+
+    @classmethod
+    def create_token(cls, country="US"):
+        unique_id = time.time()
+        url = f"https://api.readly.com/account/signup"
+        headers = {
+            "User-Agent": cls.user_agent,
+            "Accept-Version": "7",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+
+        data = {
+            "email": f"readly-get-{unique_id}@gmail.com",
+            "password": "readlymag",
+            "country": country,
+            "platform": "Android",
+            "id": f"00000000-7f40-6238-0000-00{unique_id}",
+            "platformInfo": "SDK=22;BRAND=samsung;MODEL=SM-J320H;RESOLUTION=720x1280;HEAP=256;TEXTURESIZE=4096;SCREENDIAGONALSIZE=4.83;SCREENCATEGORY=SMALL;HIRESREADER=true;INSTALLERPACKAGE=com.android.vending",
+            "build": "4.8.5",
+            "apiVer": "7",
+            "appsflyerId": "1588711795353-1696111357546090178",
+        }
+        r = requests_retry_session(session=cls.session).post(
+            url,
+            allow_redirects=True,
+            headers=headers,
+            data=data
         )
+
+        if not r.text:
+            return False
+        infos = json.loads(r.text)
+        return infos['loginResponse']['token']

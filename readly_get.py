@@ -128,12 +128,19 @@ if __name__ == "__main__":
         help="Ne supprime pas le répertoire temporaire dans le cas où un PDF a été généré",
     )
     parser.add_argument(
+        "--create-token",
+        action="store_true",
+        default=False,
+        help="Demande un nouveau token",
+    )
+    parser.add_argument(
         "--version",
         action="store_true",
         default=False,
         help="Affiche la version",
     )
 
+    
     args = parser.parse_args()
     url = args.url
     auth_token = args.token
@@ -145,11 +152,21 @@ if __name__ == "__main__":
     pause_sec = args.pause
     no_clean = args.no_clean
     version = args.version
+    create_token = args.create_token
 
     check_version()
     if version:
         sys.exit()
 
+    if create_token:
+        new_token = readly.Readly.create_token()
+        if new_token:
+            print(f"Token : {new_token}")
+        else:
+            print("[ERROR] Impossible de créer un nouveau token...")
+        sys.exit()
+
+        
     # Lecture du token.
     if os.path.exists(auth_token):
         auth_token = open(auth_token, "r").readline()
