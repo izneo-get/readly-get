@@ -11,38 +11,12 @@ https://api.readly.com/urls
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
-import json
-import struct
-import io
-from io import BytesIO
-import img2pdf
+import sys
 import os
-from PIL import Image, ImageOps
-import shutil
 import re
 import argparse
-import time
+import readly
 
-
-def requests_retry_session(
-    retries=3,
-    backoff_factor=1,
-    status_forcelist=(500, 502, 504),
-    session=None,
-):
-    """Permet de gérer les cas simples de problèmes de connexions."""
-    session = session or requests.Session()
-    retry = Retry(
-        total=retries,
-        read=retries,
-        connect=retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=status_forcelist,
-    )
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    return session
 
 
 def clean_name(name):
@@ -65,132 +39,21 @@ def clean_name(name):
     name = re.sub(r"\.+$", "", name)
     return name
 
+def check_version():
+    latest_version_url = 'https://raw.githubusercontent.com/izneo-get/readly-get/master/VERSION'
+    res = requests.get(latest_version_url)
+    if res.status_code != 200:
+        print(f"Version {__version__} (impossible to check official version)")
+    else:
+        latest_version = res.text.strip()
+        if latest_version == __version__:
+            print(f"Version {__version__} (official version)")
+        else:
+            print(f"Version {__version__} (official version is different: {latest_version})")
+            print("Please check https://github.com/izneo-get/readly-get/releases/latest")
+    print()
 
-class Readly:
-    token: str = ""
-    user_agent: str = "okhttp/3.12.1"
-    output_folder = "DOWNLOADS"
-    get_content = True
-    get_articles = False
-    img_format = "jpeg"
-    img_quality = 70
-    container_format = "pdf"
-    no_clean = False
-    pause_sec = 0
-    session = requests.Session()
 
-    def __init__(self, token, user_agent="okhttp/3.12.1") -> None:
-        self.token = token
-        self.user_agent = user_agent
-
-    def decode(self, content, publication_id):
-        filesize = len(content)
-        unpacked = struct.unpack("c" * filesize, content)
-        result = []
-        for i, u in enumerate(unpacked):
-            char = ord(unpacked[i]) ^ ord(publication_id[i % len(publication_id)])
-            result.append(char)
-
-        return bytearray(result)
-
-    def download_publication(self, publication_id, save_as=""):
-        download_format = "webp"
-        url = f"https://api.readly.com/issue/{publication_id}/content?format={download_format}&r=2400"
-        headers = {
-            "X-Auth-Token": self.token,
-            "User-Agent": self.user_agent,
-        }
-        params = ()
-
-        r = requests_retry_session(session=self.session).get(
-            url,
-            # cookies=s.cookies,
-            allow_redirects=True,
-            headers=headers,
-            params=params,
-        )
-        full_content = json.loads(r.text)
-
-        if not save_as:
-            save_as = publication_id
-        tmp_output_folder = f"{self.output_folder}/{save_as}"
-        os.makedirs(tmp_output_folder, exist_ok=True)
-        if self.get_content:
-            content = full_content["content"]
-            for i, c_url in enumerate(content):
-                print(f"Téléchargement de la page {i+1} / {len(content)}", end="\r")
-                r = requests_retry_session(session=self.session).get(c_url)
-                page = f"000{i}"[-3:]
-                current_file = f"{tmp_output_folder}/page_{page}.{self.img_format}"
-                im = Image.open(BytesIO(self.decode(r.content, publication_id)))
-                im = im.convert("RGB")
-                im.save(current_file, self.img_format, quality=self.img_quality)
-                time.sleep(pause_sec)
-            print()
-
-        if self.get_articles:
-            articles = full_content["articles"]
-            for i, a in enumerate(articles):
-                print(f"Page {i+1} / {len(articles)}", end="\r")
-                r = requests_retry_session(session=self.session).get(a["url"])
-                with open(f"{tmp_output_folder}/article_{a['key']}.zip", "wb") as f:
-                    f.write(decodeImageContents(r.content, publication_id))
-            print()
-
-        if self.container_format.upper() == "PDF".upper():
-            print("Création du PDF...")
-            if self.img_format.upper() == "WEBP".upper():
-                print(
-                    "[WARNING] Le format \"WEBP\" n'est pas optimisé pour les PDF. Le fichier risque d'être d'une taille très importante."
-                )
-            pdf_file = self.get_unique_path(self.output_folder, save_as, "pdf")
-            with open(pdf_file, "wb") as f:
-                imgs = []
-                for fname in os.listdir(tmp_output_folder):
-                    if not fname.endswith(f".{self.img_format}"):
-                        continue
-                    path = os.path.join(tmp_output_folder, fname)
-                    if os.path.isdir(path):
-                        continue
-                    imgs.append(path)
-                f.write(img2pdf.convert(imgs))
-            print(f'"{pdf_file}" créé avec succès !')
-
-        if self.container_format.upper() == "CBZ".upper():
-            print("Création du CBZ...")
-            zip_file = self.get_unique_path(self.output_folder, save_as, "zip")
-            shutil.make_archive(zip_file[:-4], "zip", tmp_output_folder)
-            cbz_file = self.get_unique_path(self.output_folder, save_as, "cbz")
-            os.rename(zip_file, cbz_file)
-            print(f'"{cbz_file}" créé avec succès !')
-
-        if not self.no_clean:
-            shutil.rmtree(tmp_output_folder)
-
-    def get_unique_path(self, folder, name, ext):
-        filler_txt = ""
-        max_attempts = 20
-        while os.path.exists(f"{folder}/{name}{filler_txt}.{ext}") and max_attempts > 0:
-            filler_txt += "_"
-            max_attempts -= 1
-        return f"{folder}/{name}{filler_txt}.{ext}"
-
-    def get_infos(self, publication_id):
-        url = f"https://d3og6tlt23zks5.cloudfront.net/content/{publication_id}"
-        headers = {
-            "X-Auth-Token": self.token,
-            "User-Agent": self.user_agent,
-        }
-        params = ()
-
-        r = requests_retry_session(session=self.session).get(
-            url,
-            allow_redirects=True,
-            headers=headers,
-        )
-        infos = json.loads(r.text)
-        infos["date"] = infos["publish_date"][: len("YYYY-MM-DD")]
-        return infos
 
 
 if __name__ == "__main__":
@@ -215,7 +78,7 @@ if __name__ == "__main__":
         "--output-folder",
         "-o",
         type=str,
-        default=None,
+        default="DOWNLOADS",
         help="Répertoire racine de téléchargement",
     )
     parser.add_argument(
@@ -264,6 +127,12 @@ if __name__ == "__main__":
         default=False,
         help="Ne supprime pas le répertoire temporaire dans le cas où un PDF a été généré",
     )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        default=False,
+        help="Affiche la version",
+    )
 
     args = parser.parse_args()
     url = args.url
@@ -275,6 +144,39 @@ if __name__ == "__main__":
     container_format = args.container_format
     pause_sec = args.pause
     no_clean = args.no_clean
+    version = args.version
+
+    check_version()
+    if version:
+        sys.exit()
+
+    # Lecture du token.
+    if os.path.exists(auth_token):
+        auth_token = open(auth_token, "r").readline()
+    
+    rdly = readly.Readly(auth_token)
+    is_token_ok = rdly.is_token_ok()
+    while not is_token_ok:
+        auth_token = input("Token d'authentification : ")
+        if auth_token.upper() == "Q":
+            sys.exit()
+        if os.path.exists(auth_token):
+            auth_token = open(auth_token, "r").readline()
+        rdly = readly.Readly(auth_token)
+        is_token_ok = rdly.is_token_ok()
+        if not is_token_ok:
+            print(f"[ERROR] Token invalide (\"{auth_token}\")...")
+        else:
+            answer = "?"
+            while answer.upper() not in ("Y", "N", "O", "Q", ""):
+                answer = input("Sauvagerder le token ? [O]ui (défault) / [N]on : ")
+            if answer.upper() == "Q":
+                sys.exit()
+            if answer.upper() in ("Y", "O", ""):
+                with open("auth_token.txt", "w") as f:
+                    f.write(auth_token)
+                print("[INFO] Token enregistré dans \"auth_token\".")
+        
 
     # Lecture de l'URL.
     while url.upper() != "Q" and not re.match(
@@ -285,32 +187,35 @@ if __name__ == "__main__":
         )
     if url.upper() == "Q":
         sys.exit()
-
-    # Lecture du token.
-    if os.path.exists(auth_token):
-        auth_token = open(auth_token, "r").readline()
     category, magazine_id, publication_id = re.match(
         "https://go.readly.com/(.+)/(.+?)/(.+)", url
     ).groups()
-    readly = Readly(token=auth_token)
-    readly.output_folder = output_folder
-    readly.img_format = image_format
-    readly.img_quality = quality
-    readly.container_format = container_format
-    readly.pause_sec = pause_sec
-    readly.no_clean = no_clean
 
-    infos = readly.get_infos(publication_id)
+
+    rdly.output_folder = output_folder
+    rdly.img_format = image_format
+    rdly.img_quality = quality
+    rdly.container_format = container_format
+    rdly.pause_sec = pause_sec
+    rdly.no_clean = no_clean
+
+    infos = rdly.get_infos(publication_id)
+    if not infos:
+        # On n'a pas d'infos, c'est peut-être un ID de magazine.
+        print("[WARNING] Publication_id invalide...")
+        print("[INFO] Publications disponibles : ")
+        publications = rdly.get_all_publications(publication_id)
+        for p in publications:
+            print(f"{p['id']}\t{p['title']} - {p['issue']} ({p['date']})")
+        publication_id = publications[0]['id']
+        print(f"[INFO] On utilise \"{publication_id} : {publications[0]['title']} - {publications[0]['issue']} ({publications[0]['date']})\"")
+        infos = rdly.get_infos(publication_id)
     output_filename = output_pattern
     for k in infos:
         output_filename = output_filename.replace(f"{k}", str(infos[k]))
 
     output_filename = clean_name(output_filename)
-    readly.download_publication(publication_id, save_as=output_filename)
-    exit()
-    to_pdf = False
-    no_clean = True
-
-    output_format = "cbz"
-
-    print()
+    print(f"[INFO] Format d'image : {image_format.upper()}")
+    print(f"[INFO] Qualité d'image : {quality}")
+    print(f"[INFO] Format du container : {container_format.upper()}")
+    rdly.download_publication(publication_id, save_as=output_filename)
