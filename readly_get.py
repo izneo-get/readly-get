@@ -154,22 +154,22 @@ if __name__ == "__main__":
     version = args.version
     create_token = args.create_token
 
-    check_version()
-    if version:
-        sys.exit()
-
     if create_token:
         new_token = readly.Readly.create_token()
         if new_token:
-            print(f"Token : {new_token}")
+            print(f"{new_token}")
         else:
             print("[ERROR] Impossible de créer un nouveau token...")
+        sys.exit()
+        
+    check_version()
+    if version:
         sys.exit()
 
         
     # Lecture du token.
     if os.path.exists(auth_token):
-        auth_token = open(auth_token, "r").readline()
+        auth_token = open(auth_token, "r").readline().strip()
     
     rdly = readly.Readly(auth_token)
     is_token_ok = rdly.is_token_ok()
