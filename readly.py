@@ -218,7 +218,7 @@ class Readly:
             headers=headers,
         )
         infos = json.loads(r.text)
-        return "subscriptions" in infos and infos["subscriptions"][0]["isActive"] and infos["subscriptions"][0]["subscriptionEnd"]
+        return "subscriptions" in infos and infos["subscriptions"][0]["isActive"] # and infos["subscriptions"][0]["subscriptionEnd"]
 
     @classmethod
     def create_token(cls, country="US"):
