@@ -15,7 +15,7 @@ import shutil
 import re
 import argparse
 import time
-
+from pikepdf import _cpphelpers
 
 def requests_retry_session(
     retries=3,
