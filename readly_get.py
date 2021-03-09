@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "01.01"
+__version__ = "01.02"
 """
 Source : https://github.com/izneo-get/readly-get
 
@@ -54,6 +54,13 @@ def check_version():
     print()
 
 
+def is_valid_url(url):
+    return (
+        re.match("https://go.readly.com(.*)/(.+?)/(.+)", url) 
+        or re.match("https://(.+?).readly.com/products/(.+)", url) 
+        or re.match("([\d\w]{24})", url) 
+    )
+
 
 
 if __name__ == "__main__":
@@ -66,7 +73,7 @@ if __name__ == "__main__":
         type=str,
         default="",
         nargs="?",
-        help="URL of the desired publication.",
+        help="URL of the desired publication or publication_id.",
     )
     parser.add_argument(
         "--token",
@@ -229,19 +236,36 @@ if __name__ == "__main__":
         
 
     # Lecture de l'URL.
-    while url.upper() != "Q" and not re.match(
-        "https://go.readly.com/(.+)/(.+?)/(.+)", url
-    ):
+    while url.upper() != "Q" and not is_valid_url(url):
         url = input(
-            'URL of publication looking like "https://go.readly.com/{folders}/{magazine_id}/{publication_id}" ("Q" to quit): '
+            'URL of publication or publication_id ("Q" to quit): '
         )
     if url.upper() == "Q":
         sys.exit()
-    category, magazine_id, publication_id = re.match(
-        "https://go.readly.com/(.+)/(.+?)/(.+)", url
-    ).groups()
-    magazine_id = magazine_id.replace("/", "")
-    publication_id = publication_id.replace("/", "")
+
+    # Id de publication
+    match = re.match("([\d\w]{24})", url)
+    if match:
+        publication_id = match[1]
+    else:
+        # URL indirecte. 
+        if re.match("https://(.+?).readly.com/products/(.+)", url):
+            res = requests.get(url)
+            if res.status_code != 200:
+                print(f"[ERROR] Invalid URL.")
+                sys.exit()
+            else:
+                match = re.search(r"\"publication_id\":\"([\d\w]+)\"", res.text)
+                if not match or not match[1]:
+                    print(f"[ERROR] Invalid URL.")
+                    sys.exit()
+                url = f"https://go.readly.com/magazines/{match[1]}" 
+
+        category, magazine_id, publication_id = re.match(
+            "https://go.readly.com(.*)/(.+?)/(.+)", url
+        ).groups()
+        magazine_id = magazine_id.replace("/", "")
+        publication_id = publication_id.replace("/", "")
 
     rdly.output_folder = output_folder
     rdly.img_format = image_format
@@ -263,8 +287,8 @@ if __name__ == "__main__":
         for p in publications:
             print(f"{p['id']}\t{p['title']} - {p['issue']} ({p['date']})")
         publication_id = publications[0]['id']
-        print(f"[INFO] \"{publication_id} : {publications[0]['title']} - {publications[0]['issue']} ({publications[0]['date']})\" will be downloaded.")
         infos = rdly.get_infos(publication_id)
+    print(f"[INFO] {publication_id} : \"{infos['title']} - {infos['issue']} ({infos['date']})\" will be downloaded.")
     output_filename = output_pattern
     for k in infos:
         output_filename = output_filename.replace(f"{k}", str(infos[k]))

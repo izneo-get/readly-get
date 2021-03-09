@@ -183,27 +183,30 @@ class Readly:
         return infos
 
     def get_all_publications(self, magazine_id):
-        url = f"https://d3og6tlt23zks5.cloudfront.net/magazines/{magazine_id}"
-        headers = {
-            "X-Auth-Token": self.token,
-            "User-Agent": self.user_agent,
-        }
-
-        r = requests_retry_session(session=self.session).get(
-            url,
-            allow_redirects=True,
-            headers=headers,
-        )
-        infos = json.loads(r.text)
-        return [
-            {
-                "id": c["id"],
-                "title": c["title"],
-                "issue": c["issue"],
-                "date": c["publish_date"][: len("YYYY-MM-DD")],
+        for pub_type in ["magazines", "newspapers"]: 
+            url = f"https://d3og6tlt23zks5.cloudfront.net/{pub_type}/{magazine_id}"
+            headers = {
+                "X-Auth-Token": self.token,
+                "User-Agent": self.user_agent,
             }
-            for c in infos["content"]
-        ]
+
+            r = requests_retry_session(session=self.session).get(
+                url,
+                allow_redirects=True,
+                headers=headers,
+            )
+            if not r.text:
+                continue
+            infos = json.loads(r.text)
+            return [
+                {
+                    "id": c["id"],
+                    "title": c["title"],
+                    "issue": c["issue"] if "issue" in c else c["publish_date"][: len("YYYY-MM-DD")],
+                    "date": c["publish_date"][: len("YYYY-MM-DD")],
+                }
+                for c in infos["content"]
+            ]
 
     def is_token_ok(self):
         url = f"https://api.readly.com/subscriptions"

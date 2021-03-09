@@ -18,7 +18,7 @@ usage: readly_get.py [-h] [--token TOKEN] [--output-folder OUTPUT_FOLDER] [--pat
 Script to save a Readly publication.
 
 positional arguments:
-  url                   URL of the desired publication.
+  url                   URL of the desired publication or publication_id.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -46,7 +46,8 @@ optional arguments:
   --version             Current version.
 ```
 
-L'`URL` attendue est au format `https://go.readly.com/{folders}/{magazine_id}/{publication_id}` ou `https://go.readly.com/{folders}/{magazine_id}`.
+L'`URL` attendue est au format `https://go.readly.com/{folders}/{magazine_id}/{publication_id}` ou `https://go.readly.com/{folders}/{magazine_id}` voire `https://{pays}.readly.com/products/magazine/nom-du-magazine`. On peut aussi donner directement l'identifiant de la publication ou du magazine (24 caractères). 
+Si c'est l'URL ou l'identifiant d'un magazine, c'est la publication la plus récente qui sera récupérée. 
 
 L'option `--token TOKEN` (optionnelle) permet de préciser le token d'API du compte Readly. On peut mettre en paramètre soit le token, soit un fichier qui contient le token. 
 Si le token n'est pas renseigné, il est lu du fichier de config `auth_token`. 

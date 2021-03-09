@@ -2,6 +2,10 @@
 
 ## readly_get.py
 
+### Version 01.02 (2021-03-09)
+- [CHANGE] Plus de souplesse sur les URL acceptée. 
+- [CHANGE] Possibilité d'indiquer directement l'identifiant de la publication.
+
 ### Version 01.01 (2021-03-09)
 - [NEW] Ajout de l'option `--dpi DPI` qui permet de choisir le DPI des images. 
 - [CHANGE] Amélioration de la procédure de vérification des tokens. 
