@@ -33,6 +33,7 @@ optional arguments:
                         Image quality (100 = best quality). Default="70".
   --container-format {pdf,cbz}, -c {pdf,cbz}
                         Output file type (available: "cbz", "pdf"). Default="pdf".
+  --dpi DPI             Image DPI (0 = original DPI). Default="0".
   --user-agent USER_AGENT
                         User-agent to use.
   --pause SECONDS, -p SECONDS
@@ -69,6 +70,9 @@ Si l'option n'est pas renseignées, la qualité `70` sera utilisé.
 L'option `--container-format {cbz|pdf}` ou `-c {cbz|pdf}` (optionnelle) permet de choisir le format du fichier dans lequel seront regroupées les images. 
 Les valeurs possibles sont : `cbz` et `pdf`. 
 Si l'option n'est pas renseignées, le format `pdf` sera utilisé. 
+
+L'option `--dpi DPI` (optionnelle) permet de choisir le DPI des images enregistrées. 
+Si l'option n'est pas renseignées, le DPI original des images sera conservé. 
 
 L'option `--user-agent "USERAGENT"` (optionnelle) permet de choisir un user-agent spécifique à utiliser. 
 Si l'option n'est pas renseignées, le user-agent `okhttp/3.12.1` sera utilisé. 

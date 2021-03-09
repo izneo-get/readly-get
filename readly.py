@@ -50,6 +50,7 @@ class Readly:
     no_clean = False
     pause_sec = 0
     resolution = 2400
+    dpi = 0
     session = requests.Session()
 
     def __init__(self, token, user_agent="okhttp/3.12.1") -> None:
@@ -83,6 +84,9 @@ class Readly:
             params=params,
         )
         full_content = json.loads(r.text)
+        if not full_content['success']:
+            print("[ERROR] Can't get publication. Please check your token.")
+            sys.exit()
 
         if not save_as:
             save_as = publication_id
@@ -97,7 +101,10 @@ class Readly:
                 current_file = f"{tmp_output_folder}/page_{page}.{self.img_format}"
                 im = Image.open(BytesIO(self.decode(r.content, publication_id)))
                 im = im.convert("RGB")
-                im.save(current_file, self.img_format, quality=self.img_quality)
+                if self.dpi:
+                    im.save(current_file, self.img_format, quality=self.img_quality, dpi=(self.dpi, self.dpi))
+                else:
+                    im.save(current_file, self.img_format, quality=self.img_quality)
                 time.sleep(self.pause_sec)
             print()
 
@@ -130,7 +137,10 @@ class Readly:
                     if os.path.isdir(path):
                         continue
                     imgs.append(path)
-                f.write(img2pdf.convert(imgs))
+                if self.dpi:
+                    f.write(img2pdf.convert(imgs, dpi=self.dpi))
+                else:
+                    f.write(img2pdf.convert(imgs))
             print(f'"{pdf_file}" successfully created!')
 
         if self.get_content and self.container_format.upper() == "CBZ".upper():
@@ -164,10 +174,12 @@ class Readly:
             allow_redirects=True,
             headers=headers,
         )
-        if not r.text:
+        if not r.text or "NOT FOUND" in r.text.upper():
             return False
         infos = json.loads(r.text)
         infos["date"] = infos["publish_date"][: len("YYYY-MM-DD")]
+        if "issue" not in infos:
+            infos["issue"] = infos["date"]
         return infos
 
     def get_all_publications(self, magazine_id):
@@ -206,7 +218,7 @@ class Readly:
             headers=headers,
         )
         infos = json.loads(r.text)
-        return "subscriptions" in infos and infos["subscriptions"][0]["isActive"]
+        return "subscriptions" in infos and infos["subscriptions"][0]["isActive"] and infos["subscriptions"][0]["subscriptionEnd"]
 
     @classmethod
     def create_token(cls, country="US"):

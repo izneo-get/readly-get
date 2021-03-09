@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "01.00"
+__version__ = "01.01"
 """
 Source : https://github.com/izneo-get/readly-get
 
@@ -111,6 +111,12 @@ if __name__ == "__main__":
         help="Output file type (available: \"cbz\", \"pdf\"). Default=\"pdf\".",
     )
     parser.add_argument(
+        "--dpi",
+        type=int,
+        default=0,
+        help="Image DPI (0 = original DPI). Default=\"0\".",
+    )
+    parser.add_argument(
         "--user-agent", type=str, default=None, help="User-agent to use."
     )
     parser.add_argument(
@@ -161,6 +167,7 @@ if __name__ == "__main__":
     image_format = args.image_format
     quality = args.quality
     container_format = args.container_format
+    dpi = args.dpi
     pause_sec = args.pause
     no_clean = args.no_clean
     version = args.version
@@ -187,6 +194,8 @@ if __name__ == "__main__":
     
     rdly = readly.Readly(auth_token)
     is_token_ok = rdly.is_token_ok()
+    if not is_token_ok:
+        print(f"[ERROR] Invalid token (\"{auth_token}\")...")
     while not is_token_ok:
         auth_token = input("Authentication token: ")
         if auth_token.upper() == "Q":
@@ -231,7 +240,8 @@ if __name__ == "__main__":
     category, magazine_id, publication_id = re.match(
         "https://go.readly.com/(.+)/(.+?)/(.+)", url
     ).groups()
-
+    magazine_id = magazine_id.replace("/", "")
+    publication_id = publication_id.replace("/", "")
 
     rdly.output_folder = output_folder
     rdly.img_format = image_format
@@ -240,6 +250,7 @@ if __name__ == "__main__":
     rdly.pause_sec = pause_sec
     rdly.no_clean = no_clean
     rdly.get_articles = get_articles
+    rdly.dpi = dpi
 
 
 
