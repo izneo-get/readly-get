@@ -48,6 +48,7 @@ optional arguments:
 
 L'`URL` attendue est au format `https://go.readly.com/{folders}/{magazine_id}/{publication_id}` ou `https://go.readly.com/{folders}/{magazine_id}` voire `https://{pays}.readly.com/products/magazine/nom-du-magazine`. On peut aussi donner directement l'identifiant de la publication ou du magazine (24 caractères). 
 Si c'est l'URL ou l'identifiant d'un magazine, c'est la publication la plus récente qui sera récupérée. 
+Il est possible de mettre un chemin vers un fichier texte qui contient une liste d'URL. Toutes les lignes de ce fichier seront traitées. Il est possible de générer cette liste avec `readly_latest.py`. 
 
 L'option `--token TOKEN` (optionnelle) permet de préciser le token d'API du compte Readly. On peut mettre en paramètre soit le token, soit un fichier qui contient le token. 
 Si le token n'est pas renseigné, il est lu du fichier de config `auth_token`. 
@@ -126,7 +127,63 @@ python readly_get.py --image-format webp --quality 70 --container-format cbz htt
 L'avantage du format d'image WEBP est qu'il permet d'avoir une meilleure qualité d'image pour une taille inférieure à une image JPEG équivalente. 
 Malheureusement, le format PDF ne permet pas d'inclure ce format d'image. Il faut donc utiliser le format `CBZ` en tant que container. 
   
-  
+   
+   
+   
+## readly_latest.py
+Permet de lister les publications Readly les plus récentes. 
+ 
+### Utilisation
+```
+usage: readly_latest.py [-h] [--type TYPE] [--limit NUMBER] [--countries COUNTRIES] [--languages LANGUAGES]
+                        [--categories CATEGORIES] [--output OUTPUT_FILE]
+
+Script to display Readly latest publications.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --type TYPE, -t TYPE  Type of publications ("magazines", "newspapers" or "magazines,newspapers").
+                        Default="magazines,newspapers".
+  --limit NUMBER, -i NUMBER
+                        Number of issues per type. Default=25
+  --countries COUNTRIES, -c COUNTRIES
+                        Coutries of publications (2-letters format) coma separated. Default="" (all coutries).
+  --languages LANGUAGES, -l LANGUAGES
+                        Languages of publications (2-letters format) coma separated. Default="" (all languages).
+  --categories CATEGORIES, -a CATEGORIES
+                        Categories of publications coma separated. Default="" (all categories).
+  --output OUTPUT_FILE, -o OUTPUT_FILE
+                        Output to a file.
+```
+
+L'option `--type TYPE` ou `-t TYPE` (optionnelle) permet préciser de le type de publications recherchées. 
+Les valeurs possibles sont : `magazines`, `newspapers` ou `"magazines,newspapers"`.
+Si l'option n'est pas renseignées, le types utilisé sera `"magazines,newspapers"`. 
+
+L'option `--limit NUMBER` ou `-i NUMBER` (optionnelle) permet de limiter le nombre de publications à retourner. 
+Si l'option n'est pas renseignées, `25` publications (par type) seront retournées. 
+
+L'option `--countries COUNTRIES` ou `-c COUNTRIES` (optionnelle) permet de limiter les pays d'origine des publications. Il faut indiquer les codes pays (2 caractères). 
+On peut mettre plusieurs pays, séparés par des virgules. Par exemple pour filtrer sur tous les pays anglophones : `--countries "US,GB,IE,AU,NZ,CA"`.
+Si l'option n'est pas renseignées, aucun filtre de pays ne sera appliqué. 
+
+L'option `--languages LANGUAGES` ou `-l LANGUAGES` (optionnelle) permet de limiter les langues d'origine des publications. Il faut indiquer les codes langue (2 caractères). 
+On peut mettre plusieurs langues, séparées par des virgules. Par exemple pour filtrer sur les publications en anglais ou en français : `--languages "en,fr"`.
+Si l'option n'est pas renseignées, aucun filtre de langue ne sera appliqué. 
+
+L'option `--categories CATEGORIES` ou `-a CATEGORIES` (optionnelle) permet de limiter les catégories des publications. 
+Si l'option n'est pas renseignées, aucun filtre de catégorie ne sera appliqué. 
+
+L'option `--output OUTPUT_FILE` ou `-o OUTPUT_FILE` (optionnelle) permet d'enregistrer le résultat de la requète dans le fichier `OUTPUT_FILE`. 
+Ce fichier pourra ensuite être utilisé en entrée de `readly_get.py`. 
+Si l'option n'est pas renseignées, le résultat sera affiché sur la sortie standard. 
+
+### Exemples 
+#### Lister les magazines en langue anglaise et les enregistrer dans un fichier
+```
+python readly_latest.py --languages en --output liste.txt
+```
+
 ## Installation 
 ### Prérequis
 - [Python 3.9+](https://www.python.org/downloads/windows/) (non testé avec les versions précédentes)

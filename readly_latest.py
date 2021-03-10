@@ -61,7 +61,7 @@ if __name__ == "__main__":
     per_page = args.limit
     origin = ""
     countries = args.countries  # FR%2CUS%2CGB%2CIE%2CAU%2CNZ%2CCA
-    countries = countries.replace(",", "%2C")
+    countries = countries.replace(",", "%2C").upper()
     languages = args.languages  # en%2Cfr
     languages = languages.replace(",", "%2C")
     categories = args.categories  #
