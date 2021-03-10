@@ -4,6 +4,7 @@
 
 ### Version 01.03 (2021-03-10)
 - [NEW] Possibilité de mettre en entrée un fichier contenant une liste d'URLs. 
+- [CHANGE] DPI par défaut est désormais `300` (au lieu de "celui de l'image d'origine"). 
  
 ### Version 01.02 (2021-03-09)
 - [CHANGE] Plus de souplesse sur les URL acceptée. 
