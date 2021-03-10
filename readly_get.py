@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "01.02"
+__version__ = "01.03"
 """
 Source : https://github.com/izneo-get/readly-get
 
@@ -9,8 +9,6 @@ https://api.readly.com/urls
 """
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
 import sys
 import os
 import re
@@ -120,8 +118,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dpi",
         type=int,
-        default=0,
-        help="Image DPI (0 = original DPI). Default=\"0\".",
+        default=300,
+        help="Image DPI (0 = original DPI). Default=\"300\".",
     )
     parser.add_argument(
         "--user-agent", type=str, default=None, help="User-agent to use."
@@ -235,38 +233,6 @@ if __name__ == "__main__":
                     print(f"[INFO] Token saved in \"{auth_token_file}\".")
         
 
-    # Lecture de l'URL.
-    while url.upper() != "Q" and not is_valid_url(url):
-        url = input(
-            'URL of publication or publication_id ("Q" to quit): '
-        )
-    if url.upper() == "Q":
-        sys.exit()
-
-    # Id de publication
-    match = re.match("([\d\w]{24})", url)
-    if match:
-        publication_id = match[1]
-    else:
-        # URL indirecte. 
-        if re.match("https://(.+?).readly.com/products/(.+)", url):
-            res = requests.get(url)
-            if res.status_code != 200:
-                print(f"[ERROR] Invalid URL.")
-                sys.exit()
-            else:
-                match = re.search(r"\"publication_id\":\"([\d\w]+)\"", res.text)
-                if not match or not match[1]:
-                    print(f"[ERROR] Invalid URL.")
-                    sys.exit()
-                url = f"https://go.readly.com/magazines/{match[1]}" 
-
-        category, magazine_id, publication_id = re.match(
-            "https://go.readly.com(.*)/(.+?)/(.+)", url
-        ).groups()
-        magazine_id = magazine_id.replace("/", "")
-        publication_id = publication_id.replace("/", "")
-
     rdly.output_folder = output_folder
     rdly.img_format = image_format
     rdly.img_quality = quality
@@ -276,32 +242,77 @@ if __name__ == "__main__":
     rdly.get_articles = get_articles
     rdly.dpi = dpi
 
-
-
-    infos = rdly.get_infos(publication_id)
-    if not infos:
-        # On n'a pas d'infos, c'est peut-être un ID de magazine.
-        print(f"[WARNING] Invalid publication_id \"{publication_id}\"...")
-        print(f"[INFO] Available publications for magazine_id \"{publication_id}\": ")
-        publications = rdly.get_all_publications(publication_id)
-        for p in publications:
-            print(f"{p['id']}\t{p['title']} - {p['issue']} ({p['date']})")
-        publication_id = publications[0]['id']
-        infos = rdly.get_infos(publication_id)
-    print(f"[INFO] {publication_id} : \"{infos['title']} - {infos['issue']} ({infos['date']})\" will be downloaded.")
-    output_filename = output_pattern
-    for k in infos:
-        output_filename = output_filename.replace(f"{k}", str(infos[k]))
-
-    output_filename = clean_name(output_filename)
-
-    if get_articles_only:
-        rdly.no_clean = True
-        rdly.get_articles = True
-        rdly.get_content = False
-        print(f"[INFO] Articles only.")
+    # Lecture de l'URL.
+    all_urls = []
+    if not os.path.isfile(url):
+        # C'est une URL ou un ID qui nous a été donné.
+        while url.upper() != "Q" and not is_valid_url(url):
+            url = input(
+                'URL of publication or publication_id ("Q" to quit): '
+            )
+        if url.upper() == "Q":
+            sys.exit()
+        all_urls.append(url)
     else:
-        print(f"[INFO] Image format: {image_format.upper()}")
-        print(f"[INFO] Image quality : {quality}")
-        print(f"[INFO] Container format : {container_format.upper()}")
-    rdly.download_publication(publication_id, save_as=output_filename)
+        # C'est un fichier d'URLs qui nous a été donné.
+        all_urls = [line.strip() for line in open(url, "r", encoding="utf-8").readlines() if len(line.strip()) > 0 and line.strip()[0] != '#']
+    
+    # On boucle sur toutes les URLs.
+    for url in all_urls:
+        print(f"[INFO] URL: {url}")
+        # Id de publication
+        match = re.match("([\d\w]{24})", url)
+        if match:
+            publication_id = match[1]
+        else:
+            # URL indirecte. 
+            if re.match("https://(.+?).readly.com/products/(.+)", url):
+                res = requests.get(url)
+                if res.status_code != 200:
+                    print(f"[ERROR] Invalid URL \"{url}\".")
+                    sys.exit()
+                else:
+                    match = re.search(r"\"publication_id\":\"([\d\w]+)\"", res.text)
+                    if not match or not match[1]:
+                        print(f"[ERROR] Invalid URL \"{url}\".")
+                        sys.exit()
+                    url = f"https://go.readly.com/magazines/{match[1]}" 
+
+            match = re.match("https://go.readly.com(.*)/(.+?)/(.+)", url) 
+            if not match:
+                print(f"[ERROR] Invalid URL \"{url}\".")
+                sys.exit()
+            category, magazine_id, publication_id = match.groups()
+            magazine_id = magazine_id.replace("/", "")
+            publication_id = publication_id.replace("/", "")
+
+
+        # Lecture des infos.
+        infos = rdly.get_infos(publication_id)
+        if not infos:
+            # On n'a pas d'infos, c'est peut-être un ID de magazine.
+            print(f"[WARNING] Invalid publication_id \"{publication_id}\"...")
+            print(f"[INFO] Available publications for magazine_id \"{publication_id}\": ")
+            publications = rdly.get_all_publications(publication_id)
+            for p in publications:
+                print(f"{p['id']}\t{p['title']} - {p['issue']} ({p['date']})")
+            publication_id = publications[0]['id']
+            infos = rdly.get_infos(publication_id)
+        print(f"[INFO] {publication_id} : \"{infos['title']} - {infos['issue']} ({infos['date']})\" will be downloaded.")
+        output_filename = output_pattern
+        for k in infos:
+            output_filename = output_filename.replace(f"{k}", str(infos[k]))
+
+        # Préparation du nom de sortie.
+        output_filename = clean_name(output_filename)
+
+        if get_articles_only:
+            rdly.no_clean = True
+            rdly.get_articles = True
+            rdly.get_content = False
+            print(f"[INFO] Articles only.")
+        else:
+            print(f"[INFO] Image format: {image_format.upper()}")
+            print(f"[INFO] Image quality : {quality}")
+            print(f"[INFO] Container format : {container_format.upper()}")
+        rdly.download_publication(publication_id, save_as=output_filename)

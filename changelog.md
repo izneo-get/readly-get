@@ -2,6 +2,9 @@
 
 ## readly_get.py
 
+### Version 01.03 (2021-03-10)
+- [NEW] Possibilité de mettre en entrée un fichier contenant une liste d'URLs. 
+ 
 ### Version 01.02 (2021-03-09)
 - [CHANGE] Plus de souplesse sur les URL acceptée. 
 - [CHANGE] Possibilité d'indiquer directement l'identifiant de la publication.
