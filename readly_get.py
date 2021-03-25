@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "01.03"
+__version__ = "01.04"
 """
 Source : https://github.com/izneo-get/readly-get
 
@@ -104,8 +104,8 @@ if __name__ == "__main__":
         "--quality",
         "-q",
         type=int,
-        default=70,
-        help="Image quality (100 = best quality). Default=\"70\".",
+        default=85,
+        help="Image quality (100 = best quality). Default=\"85\".",
     )
     parser.add_argument(
         "--container-format",
@@ -114,6 +114,12 @@ if __name__ == "__main__":
         choices=["pdf", "cbz"],
         default="pdf",
         help="Output file type (available: \"cbz\", \"pdf\"). Default=\"pdf\".",
+    )
+    parser.add_argument(
+        "--low-quality",
+        action="store_true",
+        default=False,
+        help="Get default low quality images instead of HQ images.",
     )
     parser.add_argument(
         "--dpi",
@@ -172,6 +178,7 @@ if __name__ == "__main__":
     image_format = args.image_format
     quality = args.quality
     container_format = args.container_format
+    use_default = args.low_quality
     dpi = args.dpi
     pause_sec = args.pause
     no_clean = args.no_clean
@@ -184,6 +191,25 @@ if __name__ == "__main__":
         new_token = readly.Readly.create_token()
         if new_token:
             print(f"{new_token}")
+            answer = "?"
+            while answer.upper() not in ("Y", "N", "O", "Q", ""):
+                answer = input("Save token? [Y]es (default) / [N]o: ")
+            if answer.upper() == "Q":
+                sys.exit()
+            if answer.upper() in ("Y", "O", ""):
+                auth_token_file = "auth_token"
+                if os.path.exists(auth_token_file):
+                    answer = "?"
+                    while answer.upper() not in ("Y", "N", "O", "Q", ""):
+                        answer = input("File already exists. Overwrite? [Y]es / [N]o (default): ")
+                    if answer.upper() == "Q":
+                        sys.exit()
+                else:
+                    answer = "Y"
+                if answer.upper() in ("Y", "O"):
+                    with open(auth_token_file, "w") as f:
+                        f.write(new_token)
+                    print(f"[INFO] Token saved in \"{auth_token_file}\".")
         else:
             print("[ERROR] Impossible to create a new token...")
         sys.exit()
@@ -241,6 +267,7 @@ if __name__ == "__main__":
     rdly.no_clean = no_clean
     rdly.get_articles = get_articles
     rdly.dpi = dpi
+    rdly.use_default = use_default
 
     # Lecture de l'URL.
     all_urls = []

@@ -30,10 +30,11 @@ optional arguments:
   --image-format {jpeg,webp}, -i {jpeg,webp}
                         Image format saved (available: "jpeg", "webp"). Default="jpeg".
   --quality QUALITY, -q QUALITY
-                        Image quality (100 = best quality). Default="70".
+                        Image quality (100 = best quality). Default="85".
   --container-format {pdf,cbz}, -c {pdf,cbz}
                         Output file type (available: "cbz", "pdf"). Default="pdf".
-  --dpi DPI             Image DPI (0 = original DPI). Default="0".
+  --low-quality         Get default low quality images instead of HQ images.
+  --dpi DPI             Image DPI (0 = original DPI). Default="300".
   --user-agent USER_AGENT
                         User-agent to use.
   --pause SECONDS, -p SECONDS
@@ -72,6 +73,8 @@ Si l'option n'est pas renseignées, la qualité `70` sera utilisé.
 L'option `--container-format {cbz|pdf}` ou `-c {cbz|pdf}` (optionnelle) permet de choisir le format du fichier dans lequel seront regroupées les images. 
 Les valeurs possibles sont : `cbz` et `pdf`. 
 Si l'option n'est pas renseignées, le format `pdf` sera utilisé. 
+
+L'option `--low-quality` permet de récupérer les images en basse qualité. Attention, elles ne sont pas toujours disponibles. 
 
 L'option `--dpi DPI` (optionnelle) permet de choisir le DPI des images enregistrées. 
 Si l'option n'est pas renseignées, le DPI original des images sera conservé. 

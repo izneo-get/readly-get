@@ -47,6 +47,7 @@ class Readly:
     img_format = "jpeg"
     img_quality = 70
     container_format = "pdf"
+    use_default = False
     no_clean = False
     pause_sec = 0
     resolution = 2400
@@ -69,6 +70,8 @@ class Readly:
 
     def download_publication(self, publication_id, save_as=""):
         download_format = "webp"
+        if self.use_default:
+            download_format = "jpeg"
         url = f"https://api.readly.com/issue/{publication_id}/content?format={download_format}&r={self.resolution}"
         headers = {
             "X-Auth-Token": self.token,
@@ -97,14 +100,22 @@ class Readly:
             for i, c_url in enumerate(content):
                 print(f"Downloading page {i+1} / {len(content)}", end="\r")
                 r = requests_retry_session(session=self.session).get(c_url)
+                if r.status_code != 200:
+                    print(f"[ERRRO] Can't download page: {r.status_code} {r.reason}")
+                    sys.exit()
                 page = f"000{i}"[-3:]
                 current_file = f"{tmp_output_folder}/page_{page}.{self.img_format}"
-                im = Image.open(BytesIO(self.decode(r.content, publication_id)))
-                im = im.convert("RGB")
-                if self.dpi:
-                    im.save(current_file, self.img_format, quality=self.img_quality, dpi=(self.dpi, self.dpi))
+                if self.use_default:
+                    with open(current_file, "wb") as im:
+                        bits = BytesIO(self.decode(r.content, publication_id))
+                        im.write(bits.getbuffer())
                 else:
-                    im.save(current_file, self.img_format, quality=self.img_quality)
+                    im = Image.open(BytesIO(self.decode(r.content, publication_id)))
+                    im = im.convert("RGB")
+                    if self.dpi:
+                        im.save(current_file, self.img_format, quality=self.img_quality, dpi=(self.dpi, self.dpi))
+                    else:
+                        im.save(current_file, self.img_format, quality=self.img_quality)
                 time.sleep(self.pause_sec)
             print()
 
