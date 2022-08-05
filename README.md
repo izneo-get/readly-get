@@ -9,10 +9,8 @@ Permet de sauvegarder une copie d'une publication Readly.
  
 ### Utilisation
 ```
-usage: readly_get.py [-h] [--token TOKEN] [--output-folder OUTPUT_FOLDER] [--pattern PATTERN]
-                     [--image-format {jpeg,webp}] [--quality QUALITY] [--container-format {pdf,cbz}]
-                     [--user-agent USER_AGENT] [--pause SECONDS] [--no-clean] [--get-articles] [--get-articles-only]
-                     [--create-token] [--version]
+usage: readly_get.py [-h] [--token TOKEN] [--output-folder OUTPUT_FOLDER] [--pattern PATTERN] [--image-format {jpeg,webp}] [--quality QUALITY] [--container-format {pdf,cbz}] [--low-quality] [--dpi DPI]
+                     [--user-agent USER_AGENT] [--pause SECONDS] [--max-dl MAX_DL] [--no-clean] [--get-articles] [--get-articles-only] [--create-token] [--version]
                      [url]
 
 Script to save a Readly publication.
@@ -20,13 +18,12 @@ Script to save a Readly publication.
 positional arguments:
   url                   URL of the desired publication or publication_id.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --token TOKEN         Authentication token or file containing the token. Default="auth_token".
   --output-folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
                         Folder to save your publication. Default="DOWNLOADS".
-  --pattern PATTERN     Pattern to name your file (available: "title", "issue", "date"). Default="title - issue
-                        (date)".
+  --pattern PATTERN     Pattern to name your file (available: "title", "issue", "date"). Default="title - issue (date)".
   --image-format {jpeg,webp}, -i {jpeg,webp}
                         Image format saved (available: "jpeg", "webp"). Default="jpeg".
   --quality QUALITY, -q QUALITY
@@ -39,10 +36,10 @@ optional arguments:
                         User-agent to use.
   --pause SECONDS, -p SECONDS
                         Make a pause (in seconds) between two pages. Default="0"
+  --max-dl MAX_DL       Max number of issues to download. Default="1".
   --no-clean            Don't delete the temp folder where the images are stored.
   --get-articles        Also download attached articles. Use with "--no-clean" option, or files will be deleted.
-  --get-articles-only   Download only attached articles (no image). Won't create PDF / CBZ file. Will force "--no-
-                        clean" option.
+  --get-articles-only   Download only attached articles (no image). Won't create PDF / CBZ file. Will force "--no-clean" option.
   --create-token        Create a new token.
   --version             Current version.
 ```
@@ -84,6 +81,9 @@ Si l'option n'est pas renseignées, le user-agent `okhttp/3.12.1` sera utilisé.
 
 L'option `--pause SECONDS` ou `-p SECONDS` (optionnelle) permet de définir une pause (en secondes) à respecter entre chaque fichier récupéré. 
 Si l'option n'est pas renseignées, aucune pause (`0`) ne sera appliquée. 
+
+L'option `--max-dl` permet de définir combien de publications seront téléchargées au maximum dans le cas où l'URL correspond à une série. 
+Si l'option n'est pas renseignée, une seule publication sera téléchargée (la plus récente). 
 
 L'option `--no-clean` (optionnelle) permet de ne pas supprimer le répertoire temporaire dans lequel les images sont sauvegardées. 
 Si l'option n'est pas renseignées, le répertoire temporaire sera supprimé après création du fichier CBZ ou PDF. 
