@@ -38,7 +38,7 @@ def clean_name(name):
 
 
 def check_version():
-    latest_version_url = "https://raw.githubusercontent.com/izneo-get/readly-get/master/VERSION"
+    latest_version_url = "https://raw.githubusercontent.com/izneo-get/readly-get/main/VERSION"
     res = requests.get(latest_version_url)
     if res.status_code != 200:
         print(f"Version {__version__} (impossible to check official version)")
