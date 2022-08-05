@@ -2,7 +2,7 @@
 
 ## readly_get.py
 
-### Version 01.04 (2021-03-23)
+### Version 01.05 (2022-08-05)
 - [CHANGE] Quand on précise l'URL d'une série, on peut télécharger plusieurs publications. 
 - [NEW] Nouveau paramètre `--max-dl` qui permet de dire combien de publications on veut télécharger dans une série. 
 

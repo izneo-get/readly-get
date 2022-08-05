@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = "01.04"
+__version__ = "01.05"
 """
 Source : https://github.com/izneo-get/readly-get
 
